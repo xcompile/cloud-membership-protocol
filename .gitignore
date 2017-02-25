@@ -1,1 +1,4 @@
 __MACOSX
+*.o
+*.log
+Application

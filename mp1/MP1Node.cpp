@@ -218,6 +218,35 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
 	/*
 	 * Your code goes here
 	 */
+    MessageHdr* hdr = (MessageHdr*)data;
+    //int id =0;
+    Address* address = 0;
+    address = (Address*) malloc(sizeof(Address));
+    short port = 0;
+
+    //memcpy(&id, data + sizeof(MessageHdr), sizeof(int)); 
+    memcpy(address, data + sizeof(MessageHdr), sizeof(Address)); 
+    memcpy(&port, data + sizeof(MessageHdr) + sizeof(int), sizeof(short));
+
+    Member* member = (Member*)env;
+    cout << "test:" <<  hdr->msgType << endl
+         << "my address:" <<  memberNode->addr.getAddress()  << endl
+         << "member address:" <<  address->getAddress() << endl;
+
+
+    size_t msgsize = sizeof(MessageHdr) + sizeof(member->addr) + sizeof(long) + 1;
+    MessageHdr* msg = (MessageHdr*)malloc(msgsize * sizeof(char));
+
+    msg->msgType = JOINREP;
+    //memcpy((char *)(msg+1), &member->addr.addr, sizeof(member->addr.addr));
+    //memcpy((char *)(msg+1) + 1 + sizeof(member->addr.addr), &member->heartbeat, sizeof(long));
+
+    // send JOINREQ message to introducer member
+    emulNet->ENsend(&memberNode->addr, address, (char *)msg, msgsize);
+        
+    free(msg);
+    free(address);
+
 }
 
 /**

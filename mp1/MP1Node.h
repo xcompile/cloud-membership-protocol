@@ -31,7 +31,10 @@
 enum MsgTypes{
     JOINREQ,
     JOINREP,
-    DUMMYLASTMSGTYPE
+    DUMMYLASTMSGTYPE,
+    SWIM_PING,
+    SWIM_ACK,
+    SWIM_PING_REQ
 };
 
 /**

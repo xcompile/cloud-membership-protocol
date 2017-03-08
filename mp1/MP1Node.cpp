@@ -209,6 +209,77 @@ void MP1Node::checkMessages() {
     return;
 }
 
+
+void MP1Node::addOrUpdateMember(Address* address, long heartbeat) {
+    int id=-1;
+    short port=-1;
+
+    memcpy(&id, &address->addr[0],sizeof(int));
+    memcpy(&port, &address->addr[4],sizeof(short));
+
+
+    bool nodeExists = false;    
+    for(auto value: memberNode->memberList) {
+        if (value.id == id
+            && value.port == port) {
+            if (heartbeat > value.heartbeat) {
+                value.setheartbeat(heartbeat);
+                value.settimestamp(par->globaltime);
+                nodeExists = true;
+            }
+
+        }
+    }
+
+	if (!nodeExists) {
+        Address newAddress = Address(to_string(id)+":"+to_string(port));
+        MemberListEntry newMember = MemberListEntry(id, port, heartbeat, par->globaltime);
+        memberNode->memberList.push_back(newMember);
+        log->logNodeAdd(&memberNode->addr,&newAddress);
+        // Confirm with JOINREP
+
+
+        size_t msgsize = sizeof(MessageHdr);
+        MessageHdr* msg = (MessageHdr *) malloc(msgsize * sizeof(char));
+        msg->msgType = JOINREP;
+        
+        emulNet->ENsend(&memberNode->addr, &newAddress, (char *)msg, msgsize);
+        free(msg);
+
+    }
+}
+
+bool MP1Node::handleJoinResponse(Member* member, void* data, int size) {
+
+    memberNode->inGroup = true;
+    return true;
+}
+
+bool MP1Node::handleJoinRequest(Member* member, void* data, int size) {
+
+    #ifdef DEBUGLOG
+        log->LOG(&memberNode->addr, "received JOINREQ");
+    #endif
+    int check_size = sizeof(Address) + sizeof(long)+1;
+
+    Address address;
+    long heartbeat = -1;
+    
+   memcpy(&address.addr, data, sizeof(address.addr));  
+   memcpy(&heartbeat, data + 1, sizeof(heartbeat));  
+
+    if (check_size != size) {
+        #ifdef DEBUGLOG
+            const string msg = "expected message size not matching: size:" + to_string(size) + " expected: " + to_string(check_size);
+            log->LOG(&memberNode->addr, msg.c_str());
+        #endif
+        return false;
+    }
+    addOrUpdateMember(&address, heartbeat);
+
+ return true;
+}
+
 /**
  * FUNCTION NAME: recvCallBack
  *
@@ -219,6 +290,39 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
 	 * Your code goes here
 	 */
     MessageHdr* hdr = (MessageHdr*)data;
+    
+    
+    if (size < (int)sizeof(MessageHdr)) {
+        #ifdef DEBUGLOG
+            log->LOG(&memberNode->addr, "expected message size not matching");
+        #endif
+        return false;
+    }
+
+
+
+    /*
+        size_t msgsize = sizeof(MessageHdr) + sizeof(joinaddr->addr) + sizeof(long) + 1;
+        msg = (MessageHdr *) malloc(msgsize * sizeof(char));
+
+        // create JOINREQ message: format of data is {struct Address myaddr}
+        msg->msgType = JOINREQ;
+        memcpy((char *)(msg+1), &memberNode->addr.addr, sizeof(memberNode->addr.addr));
+        memcpy((char *)(msg+1) + 1 + sizeof(memberNode->addr.addr), &memberNode->heartbeat, sizeof(long));
+        */
+
+    bool result = false;
+    switch(hdr->msgType) {
+        case JOINREQ:
+            result = handleJoinRequest((Member*)env,data+sizeof(MessageHdr), size - sizeof(MessageHdr));
+            break;
+        case JOINREP:
+            result = handleJoinResponse((Member*)env,data+sizeof(MessageHdr), size - sizeof(MessageHdr));
+            break;
+    }
+
+
+/*
     //int id =0;
     Address* address = 0;
     address = (Address*) malloc(sizeof(Address));
@@ -246,7 +350,8 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
         
     free(msg);
     free(address);
-
+*/
+    return result;
 }
 
 /**

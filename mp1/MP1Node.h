@@ -78,6 +78,11 @@ public:
 	Address getJoinAddress();
 	void initMemberListTable(Member *memberNode);
 	void printAddress(Address *addr);
+
+    // request handler
+    bool handleJoinRequest(Member* member, void* data, int size);
+    bool handleJoinResponse(Member* member, void* data, int size);
+    void addOrUpdateMember(Address* address, long heartbeat);
 	virtual ~MP1Node();
 };
 

@@ -31,10 +31,9 @@
 enum MsgTypes{
     JOINREQ,
     JOINREP,
+    HEARTBEATREQ,
+    HEARTBEATREP,
     DUMMYLASTMSGTYPE,
-    SWIM_PING,
-    SWIM_ACK,
-    SWIM_PING_REQ
 };
 
 /**
@@ -80,8 +79,12 @@ public:
 	void printAddress(Address *addr);
 
     // request handler
+    bool handleHeartbeatRequest(Member* member, void* data, int size);
+    bool handleHeartbeatResponse(Member* member, void* data, int size);
     bool handleJoinRequest(Member* member, void* data, int size);
     bool handleJoinResponse(Member* member, void* data, int size);
+    // helper
+    char* exportMemberList();
     void addOrUpdateMember(Address* address, long heartbeat);
 	virtual ~MP1Node();
 };

@@ -249,6 +249,14 @@ void MP1Node::addOrUpdateMember(Address* address, long heartbeat) {
     }
 }
 
+bool MP1Node::handleHeartbeatRequest(Member* member, void* data, int size) {
+    bool result = false;
+    return result;
+}
+bool MP1Node::handleHeartbeatResponse(Member* member, void* data, int size) {
+    bool result = false;
+    return result;
+}
 bool MP1Node::handleJoinResponse(Member* member, void* data, int size) {
 
     memberNode->inGroup = true;
@@ -278,6 +286,22 @@ bool MP1Node::handleJoinRequest(Member* member, void* data, int size) {
     addOrUpdateMember(&address, heartbeat);
 
  return true;
+}
+
+char* MP1Node::exportMemberList() {
+
+    size_t msgsize = memberNode->memberList.size() * (sizeof(int) + sizeof(short) +sizeof(long));
+    char* result = (char *)malloc(msgsize * sizeof(char));
+    for(auto value: memberNode->memberList) {
+     
+     memcpy(result, &value.id, sizeof(int));
+     result += sizeof(int);
+     memcpy(result, &value.port, sizeof(short));
+     result += sizeof(short);
+     memcpy(result, &value.heartbeat, sizeof(long));
+    }
+
+    return result;
 }
 
 /**
@@ -318,6 +342,12 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
             break;
         case JOINREP:
             result = handleJoinResponse((Member*)env,data+sizeof(MessageHdr), size - sizeof(MessageHdr));
+            break;
+        case HEARTBEATREQ:
+            result = handleHeartbeatRequest((Member*)env,data+sizeof(MessageHdr), size - sizeof(MessageHdr));
+            break;
+        case HEARTBEATREP:
+            result = handleHeartbeatResponse((Member*)env,data+sizeof(MessageHdr), size - sizeof(MessageHdr));
             break;
     }
 

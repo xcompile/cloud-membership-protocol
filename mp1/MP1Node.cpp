@@ -443,17 +443,15 @@ void MP1Node::cleanupMembers() {
         cout << "kicklist is not empty: " << kicklist.size() << endl;
         
         if((par->getcurrtime() - entry.gettimestamp()) > TREMOVE) {
-
-          memberNode->memberList.erase(
-              std::remove_if(memberNode->memberList.begin(),memberNode->memberList.end(),
-              [&](MemberListEntry& subentry){
-                  Address address = buildAddress(subentry.id, subentry.port);
-                  log->logNodeRemove(&memberNode->addr, &address);
-                  cout << "removed node " << address.getAddress() << endl;
-                  return (subentry.getid() == entry.getid()) && (subentry.getport() == entry.getport());
-              }),
-              memberNode->memberList.end()
-          );
+          for (std::vector<MemberListEntry>::iterator value=memberNode->memberList.begin();value < memberNode->memberList.end(); value++) {
+        
+            if (value->getid() == entry.getid() && value->getport() == entry.getport()) {
+              Address address = buildAddress(entry.id, entry.port);
+              memberNode->memberList.erase(value);
+              log->logNodeRemove(&memberNode->addr, &address);
+              cout << "removed node " << address.getAddress() << endl;
+            }
+          }
         }
 
     }

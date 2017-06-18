@@ -265,22 +265,24 @@ void MP1Node::updateMemberList(Address& address, long heartbeat) {
               it->setheartbeat(heartbeat);
               it->settimestamp(par->getcurrtime());
               updated = true;
+            // update kicklist
+            for (std::vector<MemberListEntry>::iterator value=kicklist.begin();value < kicklist.end(); value++) {
+            
+              if (value->getid() == it->getid() && value->getport() == it->getport()) {
+                cout << "size before:" << kicklist.size() << endl;
+                kicklist.erase(value);
+                cout << "size after:" << kicklist.size() << endl;
+                cout << "restored node " << value->getid() << ":" << value->getport() << endl;
+                break;
+              }
+            }
+
+
+              cout << "updated something" << endl;
             }
             break;
         } else {
          existing = false;   
-        }
-
-        // update kicklist
-        for (std::vector<MemberListEntry>::iterator value=kicklist.begin();value < kicklist.end(); value++) {
-        
-          if (value->getid() == it->getid() && value->getport() == it->getport()) {
-            cout << "size before:" << kicklist.size() << endl;
-            kicklist.erase(value);
-            cout << "size after:" << kicklist.size() << endl;
-            cout << "restored node " << value->getid() << ":" << value->getport() << endl;
-            break;
-          }
         }
 
     }
@@ -418,20 +420,27 @@ void MP1Node::nodeLoopOps() {
     if (memberNode->memberList.size() < 1) {
         return;
     }
-
-    vector<MemberListEntry>::iterator entry = select_randomly(memberNode->memberList.begin(),memberNode->memberList.end());
-
-    if(entry == memberNode->myPos) {
-        return;
+    // increase own heartbeat
+    for (std::vector<MemberListEntry>::iterator value=memberNode->memberList.begin();value < memberNode->memberList.end(); value++) {
+      Address address2 = buildAddress(value->getid(),value->getport());
+      if (memberNode->addr == address2){
+        value->setheartbeat(value->getheartbeat()+1);
+        cout << "increased own heartbeat " << value->getheartbeat() << endl;
+      }
     }
 
+    for (int i = 0; i < (memberNode->memberList.size() / 2) ;i++) {
+        vector<MemberListEntry>::iterator entry = select_randomly(memberNode->memberList.begin(),memberNode->memberList.end());
+        if (entry == memberNode->myPos) {
+          continue;
+        }
+        Address address = buildAddress(entry->id, entry->port);
+        cout << "me: " << memberNode->addr.getAddress()
+                << ", gossip to" << address.getAddress()
+                << endl;
+                sendWithMemberList(HEARTBEATREQ,&address);
+    }
     cleanupMembers();
-
-    Address address = buildAddress(entry->id, entry->port);
-    cout << "me: " << memberNode->addr.getAddress()
-         << ", gossip to" << address.getAddress()
-         << endl;
-    sendWithMemberList(HEARTBEATREQ,&address);
 
     return;
 }
@@ -442,14 +451,15 @@ void MP1Node::cleanupMembers() {
     for (auto entry: kicklist) {
         cout << "kicklist is not empty: " << kicklist.size() << endl;
         
-        if((par->getcurrtime() - entry.gettimestamp()) > TREMOVE) {
+        long delay = (par->getcurrtime() - entry.gettimestamp());
+        if(delay > TREMOVE) {
           for (std::vector<MemberListEntry>::iterator value=memberNode->memberList.begin();value < memberNode->memberList.end(); value++) {
         
             if (value->getid() == entry.getid() && value->getport() == entry.getport()) {
               Address address = buildAddress(entry.id, entry.port);
               memberNode->memberList.erase(value);
               log->logNodeRemove(&memberNode->addr, &address);
-              cout << "removed node " << address.getAddress() << endl;
+              cout << "removed node " << address.getAddress() << "("<< delay  << ")" << endl;
             }
           }
         }

@@ -57,6 +57,7 @@ private:
 	Params *par;
 	Member *memberNode;
 	char NULLADDR[6];
+	vector<MemberListEntry> kicklist;
 
 public:
 	MP1Node(Member *, Params *, EmulNet *, Log *, Address *);
@@ -86,9 +87,9 @@ public:
     // helper
     Address buildAddress(int id, short port);
     void mergeMemberlist(Member* member, char* data, int size);
-
     bool sendWithMemberList(MsgTypes msgType, Address* targetAddress);
     void updateMemberList(Address& address, long heartbeat);
+    void cleanupMembers();
 	virtual ~MP1Node();
 };
 

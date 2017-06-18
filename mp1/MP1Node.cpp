@@ -412,6 +412,8 @@ void MP1Node::nodeLoopOps() {
         return;
     }
 
+    cleanupMembers();
+
     Address address = buildAddress(entry->id, entry->port);
     cout << "me: " << memberNode->addr.getAddress()
          << ", gossip to" << address.getAddress()
@@ -419,6 +421,38 @@ void MP1Node::nodeLoopOps() {
     sendWithMemberList(HEARTBEATREQ,&address);
 
     return;
+}
+
+void MP1Node::cleanupMembers() {
+
+
+    for (auto entry: kicklist) {
+        
+        if((par->getcurrtime() - entry.gettimestamp()) >= TREMOVE) {
+
+          memberNode->memberList.erase(
+              std::remove_if(memberNode->memberList.begin(),memberNode->memberList.end(),
+              [&](MemberListEntry& subentry){
+                  return (subentry.getid() == entry.getid()) && (subentry.getport() == entry.getport());
+              }),
+              memberNode->memberList.end()
+          );
+        }
+
+    }
+
+    kicklist.clear();
+
+    std::for_each(memberNode->memberList.begin(),memberNode->memberList.end(),
+    [&](MemberListEntry& entry){
+      if((par->getcurrtime() - entry.gettimestamp()) >= TFAIL) {  
+          //FIXME whatever
+          kicklist.push_back(entry);
+      }
+    }); 
+
+
+
 }
 
 bool MP1Node::sendWithMemberList(MsgTypes msgType, Address* targetAddress) {

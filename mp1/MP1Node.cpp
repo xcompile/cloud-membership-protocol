@@ -427,12 +427,16 @@ void MP1Node::cleanupMembers() {
 
 
     for (auto entry: kicklist) {
+        cout << "kicklist is not empty: " << kicklist.size() << endl;
         
         if((par->getcurrtime() - entry.gettimestamp()) >= TREMOVE) {
 
           memberNode->memberList.erase(
               std::remove_if(memberNode->memberList.begin(),memberNode->memberList.end(),
               [&](MemberListEntry& subentry){
+                  Address address = buildAddress(subentry.id, subentry.port);
+                  log->logNodeRemove(&memberNode->addr, &address);
+                  cout << "removed node " << address.getAddress() << endl;
                   return (subentry.getid() == entry.getid()) && (subentry.getport() == entry.getport());
               }),
               memberNode->memberList.end()

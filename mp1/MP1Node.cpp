@@ -270,6 +270,19 @@ void MP1Node::updateMemberList(Address& address, long heartbeat) {
         } else {
          existing = false;   
         }
+
+        // update kicklist
+        for (std::vector<MemberListEntry>::iterator value=kicklist.begin();value < kicklist.end(); value++) {
+        
+          if (value->getid() == it->getid() && value->getport() == it->getport()) {
+            cout << "size before:" << kicklist.size() << endl;
+            kicklist.erase(value);
+            cout << "size after:" << kicklist.size() << endl;
+            cout << "restored node " << value->getid() << ":" << value->getport() << endl;
+            break;
+          }
+        }
+
     }
 
     if (!existing) {
@@ -429,7 +442,7 @@ void MP1Node::cleanupMembers() {
     for (auto entry: kicklist) {
         cout << "kicklist is not empty: " << kicklist.size() << endl;
         
-        if((par->getcurrtime() - entry.gettimestamp()) >= TREMOVE) {
+        if((par->getcurrtime() - entry.gettimestamp()) > TREMOVE) {
 
           memberNode->memberList.erase(
               std::remove_if(memberNode->memberList.begin(),memberNode->memberList.end(),
@@ -449,7 +462,7 @@ void MP1Node::cleanupMembers() {
 
     std::for_each(memberNode->memberList.begin(),memberNode->memberList.end(),
     [&](MemberListEntry& entry){
-      if((par->getcurrtime() - entry.gettimestamp()) >= TFAIL) {  
+      if((par->getcurrtime() - entry.gettimestamp()) > TFAIL) {  
           //FIXME whatever
           kicklist.push_back(entry);
       }

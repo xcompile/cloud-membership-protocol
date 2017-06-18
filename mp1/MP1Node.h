@@ -79,13 +79,16 @@ public:
 	void printAddress(Address *addr);
 
     // request handler
-    bool handleHeartbeatRequest(Member* member, void* data, int size);
-    bool handleHeartbeatResponse(Member* member, void* data, int size);
-    bool handleJoinRequest(Member* member, void* data, int size);
-    bool handleJoinResponse(Member* member, void* data, int size);
+    bool handleHeartbeatRequest(Member* member, char* data, int size);
+    bool handleHeartbeatResponse(Member* member, char* data, int size);
+    bool handleJoinRequest(Member* member, char* data, int size);
+    bool handleJoinResponse(Member* member, char* data, int size);
     // helper
-    char* exportMemberList();
-    void addOrUpdateMember(Address* address, long heartbeat);
+    Address buildAddress(int id, short port);
+    void mergeMemberlist(Member* member, char* data, int size);
+
+    bool sendWithMemberList(MsgTypes msgType, Address* targetAddress);
+    void updateMemberList(Address& address, long heartbeat);
 	virtual ~MP1Node();
 };
 

@@ -5,42 +5,8 @@
  * 				Definition of MP1Node class functions.
  **********************************/
 
-// thanks to http://stackoverflow.com/questions/6942273/get-random-element-from-container
 #include "MP1Node.h"
 
-#include <sstream>
-#include <memory>
-
-template<typename Iter, typename RandomGenerator>
-Iter select_randomly(Iter start, Iter end, RandomGenerator& g) {
-    std::uniform_int_distribution<> dis(0, std::distance(start, end) - 1);
-    std::advance(start, dis(g));
-    return start;
-}
-
-template<typename Iter>
-Iter select_randomly(Iter start, Iter end) {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    return select_randomly(start, end, gen);
-}
-
-template<typename Out>
-void split(const std::string &s, char delim, Out result) {
-    std::stringstream ss;
-    ss.str(s);
-    std::string item;
-    while (std::getline(ss, item, delim)) {
-        *(result++) = item;
-    }
-}
-
-
-std::vector<std::string> split(const std::string &s, char delim) {
-    std::vector<std::string> elems;
-    split(s, delim, std::back_inserter(elems));
-    return elems;
-}
 
 
 /*
@@ -431,8 +397,9 @@ void MP1Node::nodeLoopOps() {
     }
 
     //for (int i = 0; i < (memberNode->memberList.size() / 2) ;i++) {
-        vector<MemberListEntry>::iterator entry = select_randomly(memberNode->memberList.begin(),memberNode->memberList.end());
-        Address address = buildAddress(entry->id, entry->port);
+        int randomIndex = rand() % memberNode->memberList.size();
+        MemberListEntry entry = memberNode->memberList[randomIndex];
+        Address address = buildAddress(entry.id, entry.port);
         if (memberNode->addr == address) {
           return;
         }

@@ -246,6 +246,9 @@ void MP1Node::checkMessages() {
 
 
 void MP1Node::updateMemberList(Address& address, long heartbeat) {
+    if ((par->getcurrtime() - heartbeat) > TREMOVE) {
+     return;
+    }
 	int id = *(int*)(&address.addr);
 	int port = *(short*)(&address.addr[4]);
 

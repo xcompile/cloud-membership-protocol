@@ -253,10 +253,6 @@ void MP1Node::updateMemberList(Address& address, long heartbeat) {
     bool updated = false;
     vector<MemberListEntry>::iterator it;
     for (it=memberNode->memberList.begin();it < memberNode->memberList.end(); it++) {
-        // skip myself
-        if (it == memberNode->myPos) {
-         continue;
-        }
 
         if (it->getid() == id && it->getport() == port) {
             existing = true;
@@ -265,20 +261,17 @@ void MP1Node::updateMemberList(Address& address, long heartbeat) {
               it->setheartbeat(heartbeat);
               it->settimestamp(par->getcurrtime());
               updated = true;
-            // update kicklist
-            for (std::vector<MemberListEntry>::iterator value=kicklist.begin();value < kicklist.end(); value++) {
-            
-              if (value->getid() == it->getid() && value->getport() == it->getport()) {
-                cout << "size before:" << kicklist.size() << endl;
-                kicklist.erase(value);
-                cout << "size after:" << kicklist.size() << endl;
-                cout << "restored node " << value->getid() << ":" << value->getport() << endl;
-                break;
+              // update kicklist
+              for (std::vector<MemberListEntry>::iterator value=kicklist.begin();value < kicklist.end(); value++) {
+              
+                if (value->getid() == it->getid() && value->getport() == it->getport()) {
+                  kicklist.erase(value);
+                  cout << "restored node " << value->getid() << ":" << value->getport() << endl;
+                  break;
+                }
               }
-            }
 
 
-              cout << "updated something" << endl;
             }
             break;
         } else {
@@ -339,8 +332,13 @@ void MP1Node::mergeMemberlist(Member* member, char* data, int size) {
 }
 
 bool MP1Node::handleHeartbeatRequest(Member* member, char* data, int size) {
+
     #ifdef DEBUGLOG
-        log->LOG(&memberNode->addr, "received HEARTBEATREQ");
+      static char s[1024];
+      Address sourceAddress;
+      memcpy(&sourceAddress, data, sizeof(Address));
+      sprintf(s, "received HEARTBEATREQ from %s",sourceAddress.getAddress().c_str());
+      //log->LOG(&memberNode->addr, s);
     #endif
     mergeMemberlist(member, data, size);
     return true;
@@ -429,17 +427,17 @@ void MP1Node::nodeLoopOps() {
       }
     }
 
-    for (int i = 0; i < (memberNode->memberList.size() / 2) ;i++) {
+    //for (int i = 0; i < (memberNode->memberList.size() / 2) ;i++) {
         vector<MemberListEntry>::iterator entry = select_randomly(memberNode->memberList.begin(),memberNode->memberList.end());
-        if (entry == memberNode->myPos) {
-          continue;
-        }
         Address address = buildAddress(entry->id, entry->port);
+        if (memberNode->addr == address) {
+          return;
+        }
         cout << "me: " << memberNode->addr.getAddress()
                 << ", gossip to" << address.getAddress()
                 << endl;
                 sendWithMemberList(HEARTBEATREQ,&address);
-    }
+    //}
     cleanupMembers();
 
     return;
@@ -447,9 +445,23 @@ void MP1Node::nodeLoopOps() {
 
 void MP1Node::cleanupMembers() {
 
+    #ifdef DEBUGLOG
+        static char s[1024];
+    #endif
+
+
+    #ifdef DEBUGLOG
+      if (kicklist.size() >0) {
+        cout << memberNode->addr.getAddress() << " kicklist" << endl;
+        int i = 1;
+        for (auto entry: kicklist) {
+          cout << i <<"->"<< entry.getid() << endl;
+          i++;
+        }
+      }
+    #endif
 
     for (auto entry: kicklist) {
-        cout << "kicklist is not empty: " << kicklist.size() << endl;
         
         long delay = (par->getcurrtime() - entry.gettimestamp());
         if(delay > TREMOVE) {
@@ -459,6 +471,10 @@ void MP1Node::cleanupMembers() {
               Address address = buildAddress(entry.id, entry.port);
               memberNode->memberList.erase(value);
               log->logNodeRemove(&memberNode->addr, &address);
+              #ifdef DEBUGLOG
+                sprintf(s,"removed %s", address.getAddress().c_str());
+                //log->LOG(&memberNode->addr, s);
+              #endif
               cout << "removed node " << address.getAddress() << "("<< delay  << ")" << endl;
             }
           }
@@ -470,9 +486,17 @@ void MP1Node::cleanupMembers() {
 
     std::for_each(memberNode->memberList.begin(),memberNode->memberList.end(),
     [&](MemberListEntry& entry){
+
+      Address address = buildAddress(entry.id, entry.port);
+      // skip myself
+      if (
+        memberNode->addr == address
+      ) {
+        return;
+      }
+
       if((par->getcurrtime() - entry.gettimestamp()) > TFAIL) {  
-          //FIXME whatever
-          kicklist.push_back(entry);
+       kicklist.push_back(entry);
       }
     }); 
 
